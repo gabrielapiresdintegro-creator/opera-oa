@@ -1,0 +1,3087 @@
+<!doctype html>
+<html lang="pt-BR" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema Colheita - Dual View</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <style>
+        body {
+            box-sizing: border-box;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0c2d5c 0%, #1e3a8a 100%);
+            color: #ffffff;
+        }
+
+        #app-wrapper {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* SELETOR DE VISUALIZAÇÃO */
+        .view-selector {
+            background: linear-gradient(135deg, #1e3a8a 0%, #0c2d5c 100%);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            border-bottom: 3px solid #3b82f6;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .view-toggle {
+            display: flex;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 4px;
+            gap: 4px;
+        }
+
+        .view-button {
+            padding: 12px 32px;
+            border: none;
+            background: transparent;
+            color: #a0a0a0;
+            cursor: pointer;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .view-button:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .view-button.active {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: #ffffff;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+        }
+
+        .view-icon {
+            font-size: 1.3em;
+        }
+
+        /* CONTAINER DE VISUALIZAÇÕES */
+        .views-container {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .view-panel {
+            display: none;
+            width: 100%;
+            min-height: 100%;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .view-panel.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ==================== PAINEL ADMINISTRATIVO ==================== */
+        .admin-content {
+            padding: 24px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .admin-header {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.7) 0%, rgba(12, 45, 92, 0.7) 100%);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .admin-header h1 {
+            font-size: 2em;
+            color: #3b82f6;
+            margin-bottom: 8px;
+        }
+
+        .admin-subtitle {
+            color: #a0a0a0;
+            font-size: 1em;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .kpi-card {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        .kpi-card:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.2);
+        }
+
+        .kpi-label {
+            font-size: 0.85em;
+            color: #a0a0a0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .kpi-value {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: #3b82f6;
+        }
+
+        .kpi-unit {
+            font-size: 0.5em;
+            color: #a0a0a0;
+            margin-left: 4px;
+        }
+
+        .fleet-section {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.6) 0%, rgba(12, 45, 92, 0.6) 100%);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #3b82f6;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .machines-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .machine-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            border: 2px solid rgba(59, 130, 246, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .machine-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(59, 130, 246, 0.3);
+            border-color: #3b82f6;
+        }
+
+        .machine-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .machine-id {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-active {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+            border: 1px solid #3b82f6;
+        }
+
+        .status-idle {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+            border: 1px solid #fbbf24;
+        }
+
+        .machine-operator {
+            font-size: 0.95em;
+            color: #a0a0a0;
+            margin-bottom: 16px;
+        }
+
+        .machine-metrics {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .metric-box {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .metric-label {
+            font-size: 0.75em;
+            color: #a0a0a0;
+            margin-bottom: 4px;
+        }
+
+        .metric-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #3b82f6;
+        }
+
+        /* MAPA DE LOCALIZAÇÃO */
+        .map-container {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .map-canvas {
+            background: linear-gradient(135deg, #0a2540 0%, #1a365d 100%);
+            border-radius: 8px;
+            height: 500px;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .field-plot {
+            position: absolute;
+            border: 2px solid #3b82f6;
+            background: rgba(59, 130, 246, 0.15);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #3b82f6;
+            transition: all 0.3s ease;
+        }
+
+        .field-plot:hover {
+            background: rgba(59, 130, 246, 0.25);
+            z-index: 10;
+        }
+
+        .vehicle-marker {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            font-weight: bold;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+
+        .vehicle-marker.active {
+            background: #3b82f6;
+            border: 2px solid #60a5fa;
+        }
+
+        .vehicle-marker.idle {
+            background: #fbbf24;
+            border: 2px solid #fcd34d;
+        }
+
+        .vehicle-marker:hover {
+            transform: scale(1.3);
+            z-index: 20;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 2px 12px rgba(59, 130, 246, 0.4);
+            }
+            50% {
+                box-shadow: 0 2px 20px rgba(59, 130, 246, 0.8);
+            }
+        }
+
+        .vehicle-tooltip {
+            position: absolute;
+            background: rgba(10, 45, 92, 0.95);
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 0.85em;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 100;
+            display: none;
+        }
+
+        .map-legend {
+            display: flex;
+            gap: 24px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+            color: #a0a0a0;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        /* DASHBOARD FINANCEIRO */
+        .financial-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .financial-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+
+        .finance-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            border: 2px solid rgba(59, 130, 246, 0.2);
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .finance-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(59, 130, 246, 0.3);
+        }
+
+        .finance-card.revenue {
+            border-color: rgba(34, 197, 94, 0.4);
+        }
+
+        .finance-card.expenses {
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+
+        .finance-card.profit {
+            border-color: rgba(59, 130, 246, 0.5);
+            background: rgba(59, 130, 246, 0.08);
+        }
+
+        .finance-icon {
+            font-size: 2.5em;
+            opacity: 0.8;
+        }
+
+        .finance-info {
+            flex: 1;
+        }
+
+        .finance-label {
+            font-size: 0.85em;
+            color: #a0a0a0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .finance-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+
+        .profit-value {
+            color: #3b82f6;
+        }
+
+        .finance-detail {
+            font-size: 0.85em;
+            color: #22c55e;
+        }
+
+        .expenses-breakdown,
+        .weekly-chart {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .breakdown-title {
+            font-size: 1.2em;
+            color: #3b82f6;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .expense-items {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .expense-item {
+            width: 100%;
+        }
+
+        .expense-bar-container {
+            width: 100%;
+        }
+
+        .expense-label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .expense-name {
+            font-size: 0.95em;
+            color: #ffffff;
+            font-weight: 500;
+        }
+
+        .expense-amount {
+            font-size: 0.9em;
+            color: #a0a0a0;
+        }
+
+        .expense-bar {
+            width: 100%;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .expense-bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.5s ease;
+        }
+
+        .chart-container {
+            width: 100%;
+        }
+
+        .chart-bars {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            height: 250px;
+            gap: 8px;
+            padding: 20px 0;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chart-bar {
+            flex: 1;
+            background: linear-gradient(180deg, #3b82f6, #1e40af);
+            border-radius: 8px 8px 0 0;
+            position: relative;
+            transition: all 0.3s ease;
+            min-height: 20px;
+        }
+
+        .chart-bar:hover {
+            opacity: 0.8;
+            transform: translateY(-4px);
+        }
+
+        .chart-bar-value {
+            position: absolute;
+            top: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75em;
+            color: #3b82f6;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .chart-legend-bottom {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 12px;
+            font-size: 0.85em;
+            color: #a0a0a0;
+        }
+
+        /* ==================== PAINEL DO OPERADOR ==================== */
+        .operator-content {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .operator-header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #0c2d5c 100%);
+            padding: 20px 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            border-bottom: 3px solid #3b82f6;
+        }
+
+        .operator-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .operator-identity {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .operator-avatar {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8em;
+            font-weight: bold;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+        }
+
+        .operator-details h2 {
+            font-size: 1.6em;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+
+        .operator-machine {
+            color: #3b82f6;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        .operator-time {
+            text-align: right;
+        }
+
+        .time-label {
+            font-size: 0.85em;
+            color: #a0a0a0;
+            margin-bottom: 4px;
+        }
+
+        .time-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #3b82f6;
+        }
+
+        .operator-main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        /* ORDEM DE SERVIÇO */
+        .work-order-section {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.6) 0%, rgba(12, 45, 92, 0.6) 100%);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .work-order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .work-order-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #3b82f6;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .work-order-status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .work-order-status-badge.active {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+            border: 2px solid #22c55e;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #22c55e;
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% {
+                opacity: 1;
+                box-shadow: 0 0 8px #22c55e;
+            }
+            50% {
+                opacity: 0.5;
+                box-shadow: 0 0 16px #22c55e;
+            }
+        }
+
+        .work-order-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .work-order-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .work-order-info {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .work-order-label {
+            font-size: 0.85em;
+            color: #a0a0a0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .work-order-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .work-order-progress-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .work-order-progress-bar {
+            width: 100%;
+            height: 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .work-order-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+            border-radius: 8px;
+            transition: width 0.5s ease;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
+        }
+
+        .work-order-progress-text {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #3b82f6;
+        }
+
+        .work-order-instructions {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .instructions-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            font-size: 1.1em;
+        }
+
+        .instructions-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .instructions-list li {
+            color: #a0a0a0;
+            font-size: 0.95em;
+            padding-left: 8px;
+        }
+
+        .status-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .status-card {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.6) 0%, rgba(12, 45, 92, 0.6) 100%);
+            border-radius: 16px;
+            padding: 20px;
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .status-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(59, 130, 246, 0.4);
+        }
+
+        .status-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .status-card-title {
+            font-size: 0.85em;
+            color: #a0a0a0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-card-icon {
+            font-size: 1.8em;
+        }
+
+        .status-card-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #3b82f6;
+            line-height: 1;
+        }
+
+        .status-card-unit {
+            font-size: 0.4em;
+            color: #a0a0a0;
+            margin-left: 4px;
+        }
+
+        .status-card-subtitle {
+            font-size: 0.85em;
+            color: #a0a0a0;
+            margin-top: 8px;
+        }
+
+        /* ALERTAS */
+        .alerts-section {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.6) 0%, rgba(12, 45, 92, 0.6) 100%);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .alert-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #3b82f6;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 16px;
+            border-radius: 12px;
+            border-left: 4px solid #3b82f6;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .alert-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(4px);
+        }
+
+        .alert-item.warning {
+            border-left-color: #fbbf24;
+        }
+
+        .alert-item.critical {
+            border-left-color: #ef4444;
+        }
+
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .alert-type {
+            font-weight: 600;
+            font-size: 1em;
+            color: #ffffff;
+        }
+
+        .alert-time {
+            font-size: 0.85em;
+            color: #a0a0a0;
+        }
+
+        .alert-message {
+            color: #a0a0a0;
+            font-size: 0.9em;
+        }
+
+        /* GAUGES */
+        .gauges-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .gauge-card {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.6) 0%, rgba(12, 45, 92, 0.6) 100%);
+            border-radius: 16px;
+            padding: 24px;
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            text-align: center;
+        }
+
+        .gauge-title {
+            font-size: 1em;
+            color: #a0a0a0;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .gauge-display {
+            position: relative;
+            width: 180px;
+            height: 180px;
+            margin: 0 auto 16px;
+        }
+
+        .gauge-circle {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                #3b82f6 0deg,
+                #3b82f6 var(--gauge-rotation),
+                rgba(255, 255, 255, 0.1) var(--gauge-rotation),
+                rgba(255, 255, 255, 0.1) 360deg
+            );
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .gauge-inner {
+            width: 140px;
+            height: 140px;
+            background: linear-gradient(135deg, #0c2d5c, #1e3a8a);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .gauge-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #3b82f6;
+            line-height: 1;
+        }
+
+        .gauge-unit {
+            font-size: 0.9em;
+            color: #a0a0a0;
+            margin-top: 4px;
+        }
+
+        .gauge-status {
+            font-size: 0.9em;
+            color: #a0a0a0;
+        }
+
+        .gauge-status.optimal {
+            color: #3b82f6;
+        }
+
+        .gauge-status.warning {
+            color: #fbbf24;
+        }
+
+        .gauge-status.critical {
+            color: #ef4444;
+        }
+
+        /* ESTILOS PAINEL MANUTENÇÃO */
+        .maintenance-alert-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px 20px;
+            border-left: 4px solid;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .maintenance-alert-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(4px);
+        }
+
+        .maintenance-alert-card.critical {
+            border-left-color: #ef4444;
+        }
+
+        .maintenance-alert-card.warning {
+            border-left-color: #fbbf24;
+        }
+
+        .maintenance-alert-card.info {
+            border-left-color: #3b82f6;
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-main {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 6px;
+        }
+
+        .alert-icon {
+            font-size: 1.5em;
+        }
+
+        .alert-machine {
+            font-weight: bold;
+            color: #ffffff;
+            font-size: 1em;
+        }
+
+        .alert-description {
+            color: #a0a0a0;
+            font-size: 0.9em;
+            margin-left: 42px;
+        }
+
+        .alert-action {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border: none;
+            border-radius: 8px;
+            color: #ffffff;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .alert-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+        }
+
+        .machine-health-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            border: 2px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .health-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .health-machine-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #ffffff;
+        }
+
+        .health-status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+
+        .health-status.excellent {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .health-status.good {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+        }
+
+        .health-status.warning {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        .health-status.critical {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .health-metrics {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .health-metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9em;
+        }
+
+        .health-metric-label {
+            color: #a0a0a0;
+        }
+
+        .health-metric-value {
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .history-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 12px 16px;
+            border-left: 3px solid #3b82f6;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .history-machine {
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .history-date {
+            font-size: 0.85em;
+            color: #a0a0a0;
+        }
+
+        .history-description {
+            font-size: 0.9em;
+            color: #a0a0a0;
+        }
+
+        .performance-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .performance-header {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .performance-machine {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+
+        .performance-score {
+            font-size: 2em;
+            font-weight: bold;
+            color: #3b82f6;
+        }
+
+        .performance-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .performance-bar-item {
+            width: 100%;
+        }
+
+        .performance-bar-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 0.85em;
+        }
+
+        .performance-bar-label {
+            color: #a0a0a0;
+        }
+
+        .performance-bar-value {
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .performance-bar-track {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .performance-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .parts-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            border: 2px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .parts-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .parts-name {
+            font-weight: 600;
+            color: #ffffff;
+            font-size: 1em;
+        }
+
+        .parts-quantity {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .parts-current {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #3b82f6;
+        }
+
+        .parts-min {
+            font-size: 0.8em;
+            color: #a0a0a0;
+        }
+
+        .parts-status {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .parts-status.ok {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .parts-status.low {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        .parts-status.critical {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .schedule-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            border: 2px solid rgba(59, 130, 246, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .schedule-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: #3b82f6;
+        }
+
+        .schedule-date-box {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            min-width: 70px;
+        }
+
+        .schedule-day {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #ffffff;
+            line-height: 1;
+        }
+
+        .schedule-month {
+            font-size: 0.8em;
+            color: #bfdbfe;
+            margin-top: 4px;
+        }
+
+        .schedule-details {
+            flex: 1;
+        }
+
+        .schedule-machine {
+            font-weight: bold;
+            color: #ffffff;
+            font-size: 1.1em;
+            margin-bottom: 4px;
+        }
+
+        .schedule-task {
+            color: #a0a0a0;
+            font-size: 0.9em;
+        }
+
+        .schedule-priority {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .schedule-priority.high {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .schedule-priority.medium {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        .schedule-priority.low {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 1024px) {
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .gauges-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .view-selector {
+                padding: 12px 16px;
+            }
+
+            .view-button {
+                padding: 10px 20px;
+                font-size: 0.9em;
+            }
+
+            .admin-content,
+            .operator-main {
+                padding: 16px;
+            }
+
+            .kpi-grid,
+            .status-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .machines-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .gauges-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .operator-info {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+
+            .operator-identity {
+                flex-direction: column;
+            }
+
+            .map-canvas {
+                height: 350px;
+            }
+
+            .financial-summary {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-bars {
+                height: 180px;
+            }
+        }
+    </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body class="h-full">
+  <div id="app-wrapper"><!-- SELETOR DE VISUALIZAÇÃO -->
+   <div class="view-selector">
+    <div class="view-toggle"><button class="view-button active" onclick="switchView('admin')" id="btn-admin"> <span class="view-icon">👔</span> <span>Administrativo</span> </button> <button class="view-button" onclick="switchView('operator')" id="btn-operator"> <span class="view-icon">🚜</span> <span>Operador</span> </button> <button class="view-button" onclick="switchView('maintenance')" id="btn-maintenance"> <span class="view-icon">🔧</span> <span>Manutenção &amp; Análise</span> </button>
+    </div>
+   </div><!-- CONTAINER DE VISUALIZAÇÕES -->
+   <div class="views-container"><!-- ==================== PAINEL ADMINISTRATIVO ==================== -->
+    <div class="view-panel active" id="admin-view">
+     <div class="admin-content"><!-- HEADER -->
+      <div class="admin-header">
+       <h1 id="admin-title">Dashboard Administrativo</h1>
+       <p class="admin-subtitle"><span id="farm-name">Fazenda Santa Clara</span> • Safra 2024 • Atualizado em tempo real</p>
+       <div class="kpi-grid">
+        <div class="kpi-card">
+         <div class="kpi-label">
+          Produção Total
+         </div>
+         <div class="kpi-value"><span id="total-production">847.5</span> <span class="kpi-unit">ton</span>
+         </div>
+        </div>
+        <div class="kpi-card">
+         <div class="kpi-label">
+          Área Colhida
+         </div>
+         <div class="kpi-value"><span id="harvested-area">156.8</span> <span class="kpi-unit">ha</span>
+         </div>
+        </div>
+        <div class="kpi-card">
+         <div class="kpi-label">
+          Máquinas Ativas
+         </div>
+         <div class="kpi-value"><span id="active-machines">8</span> <span class="kpi-unit">/ 10</span>
+         </div>
+        </div>
+        <div class="kpi-card">
+         <div class="kpi-label">
+          Eficiência Média
+         </div>
+         <div class="kpi-value"><span id="avg-efficiency">87.3</span> <span class="kpi-unit">%</span>
+         </div>
+        </div>
+       </div>
+      </div><!-- MAPA DE LOCALIZAÇÃO -->
+      <div class="fleet-section">
+       <div class="section-title"><span>🗺️</span> <span>Localização da Frota</span>
+       </div>
+       <div class="map-container">
+        <div class="map-canvas" id="map-canvas"><!-- Talhões e veículos serão renderizados aqui -->
+        </div>
+        <div class="map-legend">
+         <div class="legend-item">
+          <div class="legend-color" style="background: rgba(59, 130, 246, 0.3); border: 2px solid #3b82f6;"></div><span>Talhões</span>
+         </div>
+         <div class="legend-item">
+          <div class="legend-color" style="background: #3b82f6;"></div><span>Veículos Ativos</span>
+         </div>
+         <div class="legend-item">
+          <div class="legend-color" style="background: #fbbf24;"></div><span>Veículos Parados</span>
+         </div>
+        </div>
+       </div>
+      </div><!-- DASHBOARD FINANCEIRO SEMANAL -->
+      <div class="fleet-section">
+       <div class="section-title"><span>💰</span> <span>Análise Financeira Semanal</span>
+       </div>
+       <div class="financial-grid">
+        <div class="financial-summary">
+         <div class="finance-card revenue">
+          <div class="finance-icon">
+           📈
+          </div>
+          <div class="finance-info">
+           <div class="finance-label">
+            Receita Bruta
+           </div>
+           <div class="finance-value">
+            R$ <span id="weekly-revenue">487.250</span>
+           </div>
+           <div class="finance-detail">
+            +12.5% vs semana anterior
+           </div>
+          </div>
+         </div>
+         <div class="finance-card expenses">
+          <div class="finance-icon">
+           📉
+          </div>
+          <div class="finance-info">
+           <div class="finance-label">
+            Despesas Totais
+           </div>
+           <div class="finance-value">
+            R$ <span id="weekly-expenses">312.840</span>
+           </div>
+           <div class="finance-detail">
+            +8.3% vs semana anterior
+           </div>
+          </div>
+         </div>
+         <div class="finance-card profit">
+          <div class="finance-icon">
+           💎
+          </div>
+          <div class="finance-info">
+           <div class="finance-label">
+            Lucro Líquido
+           </div>
+           <div class="finance-value profit-value">
+            R$ <span id="weekly-profit">174.410</span>
+           </div>
+           <div class="finance-detail">
+            Margem: <span id="profit-margin">35.8</span>%
+           </div>
+          </div>
+         </div>
+        </div>
+        <div class="expenses-breakdown">
+         <h3 class="breakdown-title">Detalhamento de Despesas</h3>
+         <div class="expense-items">
+          <div class="expense-item">
+           <div class="expense-bar-container">
+            <div class="expense-label-row"><span class="expense-name">⛽ Combustível</span> <span class="expense-amount">R$ 125.680 (40%)</span>
+            </div>
+            <div class="expense-bar">
+             <div class="expense-bar-fill" style="width: 40%; background: #3b82f6;"></div>
+            </div>
+           </div>
+          </div>
+          <div class="expense-item">
+           <div class="expense-bar-container">
+            <div class="expense-label-row"><span class="expense-name">👷 Mão de Obra</span> <span class="expense-amount">R$ 93.852 (30%)</span>
+            </div>
+            <div class="expense-bar">
+             <div class="expense-bar-fill" style="width: 30%; background: #60a5fa;"></div>
+            </div>
+           </div>
+          </div>
+          <div class="expense-item">
+           <div class="expense-bar-container">
+            <div class="expense-label-row"><span class="expense-name">🔧 Manutenção</span> <span class="expense-amount">R$ 62.568 (20%)</span>
+            </div>
+            <div class="expense-bar">
+             <div class="expense-bar-fill" style="width: 20%; background: #93c5fd;"></div>
+            </div>
+           </div>
+          </div>
+          <div class="expense-item">
+           <div class="expense-bar-container">
+            <div class="expense-label-row"><span class="expense-name">📦 Insumos</span> <span class="expense-amount">R$ 31.284 (10%)</span>
+            </div>
+            <div class="expense-bar">
+             <div class="expense-bar-fill" style="width: 10%; background: #bfdbfe;"></div>
+            </div>
+           </div>
+          </div>
+         </div>
+        </div>
+        <div class="weekly-chart">
+         <h3 class="breakdown-title">Evolução Semanal</h3>
+         <div class="chart-container">
+          <div class="chart-bars" id="weekly-chart"><!-- Barras do gráfico serão inseridas aqui -->
+          </div>
+          <div class="chart-legend-bottom"><span>Seg</span> <span>Ter</span> <span>Qua</span> <span>Qui</span> <span>Sex</span> <span>Sáb</span> <span>Dom</span>
+          </div>
+         </div>
+        </div>
+       </div>
+      </div><!-- FROTA -->
+      <div class="fleet-section">
+       <div class="section-title" id="fleet-title"><span>🚜</span> <span>Frota Ativa</span>
+       </div>
+       <div class="machines-grid" id="machines-container"><!-- Máquinas serão inseridas aqui -->
+       </div>
+      </div>
+     </div>
+    </div><!-- ==================== PAINEL DO OPERADOR ==================== -->
+    <div class="view-panel" id="operator-view">
+     <div class="operator-content"><!-- HEADER DO OPERADOR -->
+      <div class="operator-header">
+       <div class="operator-info">
+        <div class="operator-identity">
+         <div class="operator-avatar" id="operator-avatar">
+          CS
+         </div>
+         <div class="operator-details">
+          <h2 id="operator-name">Carlos Silva</h2>
+          <div class="operator-machine" id="operator-machine">
+           Colhedora COL-01 • Talhão T-03
+          </div>
+         </div>
+        </div>
+        <div class="operator-time">
+         <div class="time-label">
+          Horário Atual
+         </div>
+         <div class="time-value" id="current-time">
+          14:23
+         </div>
+        </div>
+       </div>
+      </div><!-- CONTEÚDO PRINCIPAL -->
+      <div class="operator-main"><!-- ORDEM DE SERVIÇO ATUAL -->
+       <div class="work-order-section">
+        <div class="work-order-header">
+         <div class="work-order-title"><span>📋</span> <span>Ordem de Serviço Atual</span>
+         </div>
+         <div class="work-order-status-badge active"><span class="status-dot"></span> <span>Em Andamento</span>
+         </div>
+        </div>
+        <div class="work-order-grid">
+         <div class="work-order-card">
+          <div class="work-order-info">
+           <div class="work-order-label">
+            Nº da OS
+           </div>
+           <div class="work-order-value" id="os-number">
+            OS-2024-0487
+           </div>
+          </div>
+          <div class="work-order-info">
+           <div class="work-order-label">
+            Talhão
+           </div>
+           <div class="work-order-value" id="os-field">
+            T-03 • Setor Norte
+           </div>
+          </div>
+          <div class="work-order-info">
+           <div class="work-order-label">
+            Cultura
+           </div>
+           <div class="work-order-value">
+            🌾 Cana-de-açúcar
+           </div>
+          </div>
+         </div>
+         <div class="work-order-card">
+          <div class="work-order-info">
+           <div class="work-order-label">
+            Área Total
+           </div>
+           <div class="work-order-value">
+            45.8 <span style="font-size: 0.7em; color: #a0a0a0;">hectares</span>
+           </div>
+          </div>
+          <div class="work-order-info">
+           <div class="work-order-label">
+            Área Colhida
+           </div>
+           <div class="work-order-value" id="os-harvested">
+            18.3 <span style="font-size: 0.7em; color: #a0a0a0;">ha</span>
+           </div>
+          </div>
+          <div class="work-order-info">
+           <div class="work-order-label">
+            Progresso
+           </div>
+           <div class="work-order-progress-container">
+            <div class="work-order-progress-bar">
+             <div class="work-order-progress-fill" id="os-progress" style="width: 40%;"></div>
+            </div>
+            <div class="work-order-progress-text" id="os-progress-text">
+             40%
+            </div>
+           </div>
+          </div>
+         </div>
+         <div class="work-order-card">
+          <div class="work-order-info">
+           <div class="work-order-label">
+            Início
+           </div>
+           <div class="work-order-value">
+            Hoje, 06:30
+           </div>
+          </div>
+          <div class="work-order-info">
+           <div class="work-order-label">
+            Tempo Decorrido
+           </div>
+           <div class="work-order-value" id="os-elapsed">
+            7h 53min
+           </div>
+          </div>
+          <div class="work-order-info">
+           <div class="work-order-label">
+            Previsão Término
+           </div>
+           <div class="work-order-value" id="os-estimated">
+            Hoje, 22:15
+           </div>
+          </div>
+         </div>
+         <div class="work-order-card">
+          <div class="work-order-info">
+           <div class="work-order-label">
+            Produção Atual
+           </div>
+           <div class="work-order-value">
+            112.5 <span style="font-size: 0.7em; color: #a0a0a0;">toneladas</span>
+           </div>
+          </div>
+          <div class="work-order-info">
+           <div class="work-order-label">
+            Meta do Talhão
+           </div>
+           <div class="work-order-value">
+            275 <span style="font-size: 0.7em; color: #a0a0a0;">toneladas</span>
+           </div>
+          </div>
+          <div class="work-order-info">
+           <div class="work-order-label">
+            Produtividade
+           </div>
+           <div class="work-order-value" style="color: #22c55e;">
+            ▲ 94% <span style="font-size: 0.7em; color: #a0a0a0;">da meta</span>
+           </div>
+          </div>
+         </div>
+        </div>
+        <div class="work-order-instructions">
+         <div class="instructions-header"><span style="font-size: 1.2em;">📝</span> <span style="font-weight: 600; color: #ffffff;">Instruções Especiais</span>
+         </div>
+         <ul class="instructions-list">
+          <li>✓ Altura de corte: 3-5 cm do solo</li>
+          <li>✓ Velocidade recomendada: 4.5-5.5 km/h</li>
+          <li>✓ Atenção: Área com declividade moderada no setor sudeste</li>
+          <li>✓ Transbordo coordenado com caminhões CAM-12 e CAM-15</li>
+         </ul>
+        </div>
+       </div><!-- STATUS IMEDIATO (L1 - 30s) -->
+       <div class="status-cards">
+        <div class="status-card">
+         <div class="status-card-header">
+          <div class="status-card-title">
+           Status Elevador
+          </div>
+          <div class="status-card-icon">
+           ⚡
+          </div>
+         </div>
+         <div class="status-card-value" id="elevator-status">
+          ATIVO
+         </div>
+         <div class="status-card-subtitle">
+          Operação Normal
+         </div>
+        </div>
+        <div class="status-card">
+         <div class="status-card-header">
+          <div class="status-card-title">
+           RPM Motor
+          </div>
+          <div class="status-card-icon">
+           🔄
+          </div>
+         </div>
+         <div class="status-card-value"><span id="rpm-value">2150</span> <span class="status-card-unit">rpm</span>
+         </div>
+         <div class="status-card-subtitle">
+          Faixa Ideal: 2000-2300
+         </div>
+        </div>
+        <div class="status-card">
+         <div class="status-card-header">
+          <div class="status-card-title">
+           Torque Motor
+          </div>
+          <div class="status-card-icon">
+           💪
+          </div>
+         </div>
+         <div class="status-card-value"><span id="torque-value">72</span> <span class="status-card-unit">%</span>
+         </div>
+         <div class="status-card-subtitle">
+          Carga Moderada
+         </div>
+        </div>
+        <div class="status-card">
+         <div class="status-card-header">
+          <div class="status-card-title">
+           Velocidade
+          </div>
+          <div class="status-card-icon">
+           🚜
+          </div>
+         </div>
+         <div class="status-card-value"><span id="speed-value">5.2</span> <span class="status-card-unit">km/h</span>
+         </div>
+         <div class="status-card-subtitle">
+          Velocidade de Trabalho
+         </div>
+        </div>
+        <div class="status-card">
+         <div class="status-card-header">
+          <div class="status-card-title">
+           Produtividade
+          </div>
+          <div class="status-card-icon">
+           📊
+          </div>
+         </div>
+         <div class="status-card-value"><span id="productivity-value">85.3</span> <span class="status-card-unit">t/h</span>
+         </div>
+         <div class="status-card-subtitle">
+          Ritmo de Trabalho
+         </div>
+        </div>
+        <div class="status-card">
+         <div class="status-card-header">
+          <div class="status-card-title">
+           Temp. Transmissão
+          </div>
+          <div class="status-card-icon">
+           🌡️
+          </div>
+         </div>
+         <div class="status-card-value"><span id="temp-value">78</span> <span class="status-card-unit">°C</span>
+         </div>
+         <div class="status-card-subtitle">
+          Temperatura Normal
+         </div>
+        </div>
+       </div><!-- ALERTAS E RECOMENDAÇÕES -->
+       <div class="alerts-section">
+        <div class="alert-title"><span>⚠️</span> <span>Alertas e Recomendações</span>
+        </div>
+        <div class="alert-item">
+         <div class="alert-header">
+          <div class="alert-type">
+           ✅ Sistema Normal
+          </div>
+          <div class="alert-time">
+           14:23
+          </div>
+         </div>
+         <div class="alert-message">
+          Todos os sistemas operando dentro dos parâmetros normais. Continue o trabalho.
+         </div>
+        </div>
+        <div class="alert-item warning">
+         <div class="alert-header">
+          <div class="alert-type">
+           ⚡ Atenção - Torque Elevado
+          </div>
+          <div class="alert-time">
+           14:18
+          </div>
+         </div>
+         <div class="alert-message">
+          Torque do motor em 72%. Considere reduzir velocidade se ultrapassar 80% para evitar sobrecarga.
+         </div>
+        </div>
+        <div class="alert-item">
+         <div class="alert-header">
+          <div class="alert-type">
+           💡 Dica de Otimização
+          </div>
+          <div class="alert-time">
+           14:15
+          </div>
+         </div>
+         <div class="alert-message">
+          Velocidade e produtividade estão ótimas. Mantenha o ritmo atual para maximizar eficiência.
+         </div>
+        </div>
+       </div><!-- TELEMETRIA COMPLETA POR FREQUÊNCIA --> <!-- NÍVEL 1: DADOS EM TEMPO REAL (30s) - GNSS & MOTOR -->
+       <div class="fleet-section">
+        <div class="section-title"><span>📡</span> <span>Telemetria em Tempo Real (30s)</span>
+        </div>
+        <div class="status-cards">
+         <div class="status-card">
+          <div class="status-card-header">
+           <div class="status-card-title">
+            📍 Latitude
+           </div>
+           <div class="status-card-icon">
+            🌐
+           </div>
+          </div>
+          <div class="status-card-value" style="font-size: 1.5em;"><span id="gnss-lat">-23.5505</span>°
+          </div>
+          <div class="status-card-subtitle">
+           GNSS
+          </div>
+         </div>
+         <div class="status-card">
+          <div class="status-card-header">
+           <div class="status-card-title">
+            📍 Longitude
+           </div>
+           <div class="status-card-icon">
+            🌐
+           </div>
+          </div>
+          <div class="status-card-value" style="font-size: 1.5em;"><span id="gnss-lon">-46.6333</span>°
+          </div>
+          <div class="status-card-subtitle">
+           GNSS
+          </div>
+         </div>
+         <div class="status-card">
+          <div class="status-card-header">
+           <div class="status-card-title">
+            🚜 Velocidade
+           </div>
+           <div class="status-card-icon">
+            📊
+           </div>
+          </div>
+          <div class="status-card-value"><span id="gnss-speed">5.2</span> <span class="status-card-unit">km/h</span>
+          </div>
+          <div class="status-card-subtitle">
+           GNSS Instantâneo
+          </div>
+         </div>
+         <div class="status-card">
+          <div class="status-card-header">
+           <div class="status-card-title">
+            🔄 RPM Motor
+           </div>
+           <div class="status-card-icon">
+            ⚙️
+           </div>
+          </div>
+          <div class="status-card-value"><span id="motor-rpm">2150</span> <span class="status-card-unit">rpm</span>
+          </div>
+          <div class="status-card-subtitle">
+           Faixa Ideal: 2000-2300
+          </div>
+         </div>
+         <div class="status-card">
+          <div class="status-card-header">
+           <div class="status-card-title">
+            💪 Torque Motor
+           </div>
+           <div class="status-card-icon">
+            ⚡
+           </div>
+          </div>
+          <div class="status-card-value"><span id="motor-torque">72</span> <span class="status-card-unit">%</span>
+          </div>
+          <div class="status-card-subtitle">
+           Esforço Mecânico
+          </div>
+         </div>
+         <div class="status-card">
+          <div class="status-card-header">
+           <div class="status-card-title">
+            📈 Fluxo Elevador
+           </div>
+           <div class="status-card-icon">
+            🌾
+           </div>
+          </div>
+          <div class="status-card-value" id="elevator-flow-display">
+           ATIVO
+          </div>
+          <div class="status-card-subtitle">
+           Detecção de Fluxo/Entupimento
+          </div>
+         </div>
+        </div>
+       </div><!-- NÍVEL 2: DADOS DE OPERAÇÃO (1 min) -->
+       <div class="fleet-section">
+        <div class="section-title"><span>⚙️</span> <span>Controles de Operação (1 min)</span>
+        </div>
+        <div class="gauges-grid">
+         <div class="gauge-card">
+          <div class="gauge-title">
+           Velocidade Cortador Base
+          </div>
+          <div class="gauge-display">
+           <div class="gauge-circle" id="gauge-base-cutter" style="--gauge-rotation: 252deg;">
+            <div class="gauge-inner">
+             <div class="gauge-value" id="base-cutter-value">
+              850
+             </div>
+             <div class="gauge-unit">
+              rpm
+             </div>
+            </div>
+           </div>
+          </div>
+          <div class="gauge-status optimal">
+           ✓ Qualidade de Corte OK
+          </div>
+         </div>
+         <div class="gauge-card">
+          <div class="gauge-title">
+           Altura de Corte
+          </div>
+          <div class="gauge-display">
+           <div class="gauge-circle" id="gauge-cut-height" style="--gauge-rotation: 144deg;">
+            <div class="gauge-inner">
+             <div class="gauge-value" id="cut-height-value">
+              4.2
+             </div>
+             <div class="gauge-unit">
+              cm
+             </div>
+            </div>
+           </div>
+          </div>
+          <div class="gauge-status optimal">
+           ✓ Dentro da Meta (3-5cm)
+          </div>
+         </div>
+         <div class="gauge-card">
+          <div class="gauge-title">
+           Rolos Alimentadores
+          </div>
+          <div class="gauge-display">
+           <div class="gauge-circle" id="gauge-feed-roller" style="--gauge-rotation: 288deg;">
+            <div class="gauge-inner">
+             <div class="gauge-value" id="feed-roller-value">
+              620
+             </div>
+             <div class="gauge-unit">
+              rpm
+             </div>
+            </div>
+           </div>
+          </div>
+          <div class="gauge-status optimal">
+           ✓ Fluxo Constante
+          </div>
+         </div>
+         <div class="gauge-card">
+          <div class="gauge-title">
+           Rolos Divisores
+          </div>
+          <div class="gauge-display">
+           <div class="gauge-circle" id="gauge-divider-roller" style="--gauge-rotation: 216deg;">
+            <div class="gauge-inner">
+             <div class="gauge-value" id="divider-roller-value">
+              480
+             </div>
+             <div class="gauge-unit">
+              rpm
+             </div>
+            </div>
+           </div>
+          </div>
+          <div class="gauge-status optimal">
+           ✓ Alinhamento Correto
+          </div>
+         </div>
+         <div class="gauge-card">
+          <div class="gauge-title">
+           Carga do Picador
+          </div>
+          <div class="gauge-display">
+           <div class="gauge-circle" id="gauge-chopper" style="--gauge-rotation: 234deg;">
+            <div class="gauge-inner">
+             <div class="gauge-value" id="chopper-load-value">
+              65
+             </div>
+             <div class="gauge-unit">
+              %
+             </div>
+            </div>
+           </div>
+          </div>
+          <div class="gauge-status optimal">
+           ✓ Sem Sobrecarga
+          </div>
+         </div>
+         <div class="gauge-card">
+          <div class="gauge-title">
+           Temp. Transmissão
+          </div>
+          <div class="gauge-display">
+           <div class="gauge-circle" id="gauge-transmission" style="--gauge-rotation: 234deg;">
+            <div class="gauge-inner">
+             <div class="gauge-value" id="transmission-temp-value">
+              78
+             </div>
+             <div class="gauge-unit">
+              °C
+             </div>
+            </div>
+           </div>
+          </div>
+          <div class="gauge-status optimal">
+           ✓ Temperatura Normal
+          </div>
+         </div>
+        </div><!-- MÉTRICAS DE PRODUÇÃO E LOGÍSTICA (1 min) -->
+        <div class="status-cards" style="margin-top: 20px;">
+         <div class="status-card">
+          <div class="status-card-header">
+           <div class="status-card-title">
+            📏 Distância Percorrida
+           </div>
+           <div class="status-card-icon">
+            🛣️
+           </div>
+          </div>
+          <div class="status-card-value"><span id="distance-travelled">12.8</span> <span class="status-card-unit">km</span>
+          </div>
+          <div class="status-card-subtitle">
+           Deslocamento Total Hoje
+          </div>
+         </div>
+         <div class="status-card">
+          <div class="status-card-header">
+           <div class="status-card-title">
+            📊 Produtividade Estimada
+           </div>
+           <div class="status-card-icon">
+            🌾
+           </div>
+          </div>
+          <div class="status-card-value"><span id="productivity-est">85.3</span> <span class="status-card-unit">t/h</span>
+          </div>
+          <div class="status-card-subtitle">
+           Baseado em Torque &amp; Fluxo
+          </div>
+         </div>
+        </div>
+       </div><!-- NÍVEL 3: MONITORAMENTO MOTOR & HIDRÁULICO (5 min) -->
+       <div class="fleet-section">
+        <div class="section-title"><span>🔧</span> <span>Monitoramento Motor &amp; Sistemas (5 min)</span>
+        </div>
+        <div class="gauges-grid">
+         <div class="gauge-card">
+          <div class="gauge-title">
+           Temperatura Motor
+          </div>
+          <div class="gauge-display">
+           <div class="gauge-circle" id="gauge-engine-temp" style="--gauge-rotation: 252deg;">
+            <div class="gauge-inner">
+             <div class="gauge-value" id="engine-temp-value">
+              88
+             </div>
+             <div class="gauge-unit">
+              °C
+             </div>
+            </div>
+           </div>
+          </div>
+          <div class="gauge-status optimal">
+           ✓ Faixa Operacional
+          </div>
+         </div>
+         <div class="gauge-card">
+          <div class="gauge-title">
+           Pressão Hidráulica
+          </div>
+          <div class="gauge-display">
+           <div class="gauge-circle" id="gauge-hydraulic" style="--gauge-rotation: 270deg;">
+            <div class="gauge-inner">
+             <div class="gauge-value" id="hydraulic-pressure-value">
+              185
+             </div>
+             <div class="gauge-unit">
+              bar
+             </div>
+            </div>
+           </div>
+          </div>
+          <div class="gauge-status optimal">
+           ✓ Pressão Ideal
+          </div>
+         </div>
+         <div class="gauge-card">
+          <div class="gauge-title">
+           Nível Combustível
+          </div>
+          <div class="gauge-display">
+           <div class="gauge-circle" id="gauge-fuel" style="--gauge-rotation: 198deg;">
+            <div class="gauge-inner">
+             <div class="gauge-value" id="fuel-level-value">
+              55
+             </div>
+             <div class="gauge-unit">
+              %
+             </div>
+            </div>
+           </div>
+          </div>
+          <div class="gauge-status">
+           ⚠️ Planeje Abastecimento
+          </div>
+         </div>
+         <div class="gauge-card">
+          <div class="gauge-title">
+           Consumo Instantâneo
+          </div>
+          <div class="gauge-display">
+           <div class="gauge-circle" id="gauge-consumption" style="--gauge-rotation: 216deg;">
+            <div class="gauge-inner">
+             <div class="gauge-value" id="instant-consumption-value">
+              42
+             </div>
+             <div class="gauge-unit">
+              L/h
+             </div>
+            </div>
+           </div>
+          </div>
+          <div class="gauge-status optimal">
+           ✓ Consumo Normal
+          </div>
+         </div>
+         <div class="gauge-card">
+          <div class="gauge-title">
+           Pressão Óleo Motor
+          </div>
+          <div class="gauge-display">
+           <div class="gauge-circle" id="gauge-oil-pressure" style="--gauge-rotation: 288deg;">
+            <div class="gauge-inner">
+             <div class="gauge-value" id="oil-pressure-value">
+              4.8
+             </div>
+             <div class="gauge-unit">
+              bar
+             </div>
+            </div>
+           </div>
+          </div>
+          <div class="gauge-status optimal">
+           ✓ Lubrificação OK
+          </div>
+         </div>
+         <div class="gauge-card">
+          <div class="gauge-title">
+           Temp. Gases Escape
+          </div>
+          <div class="gauge-display">
+           <div class="gauge-circle" id="gauge-exhaust" style="--gauge-rotation: 270deg;">
+            <div class="gauge-inner">
+             <div class="gauge-value" id="exhaust-temp-value">
+              425
+             </div>
+             <div class="gauge-unit">
+              °C
+             </div>
+            </div>
+           </div>
+          </div>
+          <div class="gauge-status optimal">
+           ✓ Emissão Normal
+          </div>
+         </div>
+        </div><!-- NÍVEIS DE LUBRIFICAÇÃO -->
+        <div class="status-cards" style="margin-top: 20px;">
+         <div class="status-card">
+          <div class="status-card-header">
+           <div class="status-card-title">
+            🛢️ Nível Lubrificante
+           </div>
+           <div class="status-card-icon">
+            💧
+           </div>
+          </div>
+          <div class="status-card-value"><span id="lubricant-level">78</span> <span class="status-card-unit">%</span>
+          </div>
+          <div class="status-card-subtitle">
+           Reservatório Lubrificante
+          </div>
+         </div>
+         <div class="status-card">
+          <div class="status-card-header">
+           <div class="status-card-title">
+            💧 Consumo Lubrificante
+           </div>
+           <div class="status-card-icon">
+            📉
+           </div>
+          </div>
+          <div class="status-card-value"><span id="lubricant-consumption">2.4</span> <span class="status-card-unit">L hoje</span>
+          </div>
+          <div class="status-card-subtitle">
+           Consumo Acumulado
+          </div>
+         </div>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div><!-- ==================== PAINEL DE MANUTENÇÃO & ANÁLISE ==================== -->
+    <div class="view-panel" id="maintenance-view">
+     <div class="admin-content"><!-- HEADER MANUTENÇÃO -->
+      <div class="admin-header">
+       <h1 id="maintenance-title">Central de Manutenção &amp; Análise</h1>
+       <p class="admin-subtitle">Gestão Preventiva e Preditiva • Atualizado em tempo real</p>
+       <div class="kpi-grid">
+        <div class="kpi-card">
+         <div class="kpi-label">
+          Manutenções Pendentes
+         </div>
+         <div class="kpi-value"><span id="pending-maintenance">7</span> <span class="kpi-unit">tarefas</span>
+         </div>
+        </div>
+        <div class="kpi-card">
+         <div class="kpi-label">
+          Disponibilidade Frota
+         </div>
+         <div class="kpi-value"><span id="fleet-availability">92</span> <span class="kpi-unit">%</span>
+         </div>
+        </div>
+        <div class="kpi-card">
+         <div class="kpi-label">
+          Custos Manutenção Mês
+         </div>
+         <div class="kpi-value"><span id="maintenance-cost">127.5</span> <span class="kpi-unit">mil</span>
+         </div>
+        </div>
+        <div class="kpi-card">
+         <div class="kpi-label">
+          Peças em Estoque
+         </div>
+         <div class="kpi-value"><span id="parts-stock">238</span> <span class="kpi-unit">itens</span>
+         </div>
+        </div>
+       </div>
+      </div><!-- ALERTAS CRÍTICOS DE MANUTENÇÃO -->
+      <div class="fleet-section">
+       <div class="section-title"><span>🚨</span> <span>Alertas Críticos e Preventivos</span>
+       </div>
+       <div id="maintenance-alerts-container" style="display: flex; flex-direction: column; gap: 12px;"><!-- Alertas serão inseridos aqui -->
+       </div>
+      </div><!-- GRID PRINCIPAL: ESTADO DAS MÁQUINAS + HISTÓRICO -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;"><!-- ESTADO DAS MÁQUINAS -->
+       <div class="fleet-section">
+        <div class="section-title"><span>⚙️</span> <span>Estado das Máquinas</span>
+        </div>
+        <div id="machine-health-container" style="display: flex; flex-direction: column; gap: 16px;"><!-- Cards de estado serão inseridos aqui -->
+        </div>
+       </div><!-- HISTÓRICO DE MANUTENÇÕES -->
+       <div class="fleet-section">
+        <div class="section-title"><span>📋</span> <span>Histórico Recente</span>
+        </div>
+        <div id="maintenance-history-container" style="display: flex; flex-direction: column; gap: 12px;"><!-- Histórico será inserido aqui -->
+        </div>
+       </div>
+      </div><!-- ANÁLISE DE DESEMPENHO POR MÁQUINA -->
+      <div class="fleet-section">
+       <div class="section-title"><span>📊</span> <span>Análise de Desempenho &amp; Eficiência</span>
+       </div>
+       <div id="performance-analysis-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;"><!-- Gráficos de performance serão inseridos aqui -->
+       </div>
+      </div><!-- ESTOQUE DE PEÇAS CRÍTICAS -->
+      <div class="fleet-section">
+       <div class="section-title"><span>📦</span> <span>Estoque de Peças Críticas</span>
+       </div>
+       <div id="parts-inventory-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;"><!-- Estoque de peças será inserido aqui -->
+       </div>
+      </div><!-- PLANEJAMENTO DE MANUTENÇÃO -->
+      <div class="fleet-section">
+       <div class="section-title"><span>📅</span> <span>Cronograma de Manutenção - Próximos 7 Dias</span>
+       </div>
+       <div id="maintenance-schedule-container" style="display: flex; flex-direction: column; gap: 12px;"><!-- Cronograma será inserido aqui -->
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+        // Configuração padrão
+        const defaultConfig = {
+            farm_name: "Fazenda Santa Clara",
+            admin_title: "Dashboard Administrativo",
+            fleet_title: "Frota Ativa",
+            operator_title: "Painel do Operador",
+            machine_id: "COL-01",
+            operator_name: "Carlos Silva"
+        };
+
+        // Função de atualização de configuração
+        async function onConfigChange(config) {
+            document.getElementById('farm-name').textContent = config.farm_name || defaultConfig.farm_name;
+            document.getElementById('admin-title').textContent = config.admin_title || defaultConfig.admin_title;
+            
+            const fleetTitleEl = document.getElementById('fleet-title');
+            fleetTitleEl.innerHTML = `<span>🚜</span><span>${config.fleet_title || defaultConfig.fleet_title}</span>`;
+            
+            document.getElementById('operator-name').textContent = config.operator_name || defaultConfig.operator_name;
+            document.getElementById('operator-machine').textContent = `Colhedora ${config.machine_id || defaultConfig.machine_id} • Talhão T-03`;
+            
+            const initials = (config.operator_name || defaultConfig.operator_name)
+                .split(' ')
+                .map(n => n[0])
+                .join('');
+            document.getElementById('operator-avatar').textContent = initials;
+        }
+
+        // Inicializar SDK
+        if (window.elementSdk) {
+            window.elementSdk.init({
+                defaultConfig: defaultConfig,
+                onConfigChange: onConfigChange,
+                mapToCapabilities: () => ({
+                    recolorables: [],
+                    borderables: [],
+                    fontEditable: undefined,
+                    fontSizeable: undefined
+                }),
+                mapToEditPanelValues: (config) => new Map([
+                    ["farm_name", config.farm_name || defaultConfig.farm_name],
+                    ["admin_title", config.admin_title || defaultConfig.admin_title],
+                    ["fleet_title", config.fleet_title || defaultConfig.fleet_title],
+                    ["operator_title", config.operator_title || defaultConfig.operator_title],
+                    ["machine_id", config.machine_id || defaultConfig.machine_id],
+                    ["operator_name", config.operator_name || defaultConfig.operator_name]
+                ])
+            });
+        }
+
+        // Trocar visualização
+        function switchView(view) {
+            // Atualizar botões
+            document.getElementById('btn-admin').classList.toggle('active', view === 'admin');
+            document.getElementById('btn-operator').classList.toggle('active', view === 'operator');
+            document.getElementById('btn-maintenance').classList.toggle('active', view === 'maintenance');
+
+            // Atualizar painéis
+            document.getElementById('admin-view').classList.toggle('active', view === 'admin');
+            document.getElementById('operator-view').classList.toggle('active', view === 'operator');
+            document.getElementById('maintenance-view').classList.toggle('active', view === 'maintenance');
+        }
+
+        // Dados das máquinas para o painel admin
+        const machines = [
+            { id: "COL-01", operator: "Carlos Silva", status: "active", production: 112.5, area: 18.3, efficiency: 94, speed: 5.2 },
+            { id: "COL-02", operator: "João Santos", status: "active", production: 98.7, area: 15.8, efficiency: 89, speed: 4.8 },
+            { id: "COL-03", operator: "Pedro Lima", status: "active", production: 105.3, area: 17.2, efficiency: 91, speed: 5.0 },
+            { id: "COL-04", operator: "Roberto Costa", status: "idle", production: 87.2, area: 14.1, efficiency: 78, speed: 0 },
+            { id: "COL-05", operator: "Fernando Alves", status: "active", production: 115.8, area: 19.5, efficiency: 96, speed: 5.4 },
+            { id: "COL-06", operator: "Lucas Mendes", status: "active", production: 102.4, area: 16.7, efficiency: 88, speed: 4.9 },
+            { id: "COL-07", operator: "André Souza", status: "active", production: 108.9, area: 17.9, efficiency: 92, speed: 5.1 },
+            { id: "COL-08", operator: "Rafael Dias", status: "active", production: 95.6, area: 15.2, efficiency: 85, speed: 4.7 }
+        ];
+
+        // Renderizar máquinas no painel admin
+        function renderMachines() {
+            const container = document.getElementById('machines-container');
+            container.innerHTML = '';
+
+            machines.forEach(machine => {
+                const statusClass = machine.status === 'active' ? 'status-active' : 'status-idle';
+                const statusText = machine.status === 'active' ? '✓ Operando' : '⏸ Parada';
+
+                const card = document.createElement('div');
+                card.className = 'machine-card';
+                card.innerHTML = `
+                    <div class="machine-header">
+                        <div class="machine-id">${machine.id}</div>
+                        <div class="status-badge ${statusClass}">${statusText}</div>
+                    </div>
+                    <div class="machine-operator">👤 ${machine.operator}</div>
+                    <div class="machine-metrics">
+                        <div class="metric-box">
+                            <div class="metric-label">Produção</div>
+                            <div class="metric-value">${machine.production.toFixed(1)}t</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Área</div>
+                            <div class="metric-value">${machine.area.toFixed(1)}ha</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Eficiência</div>
+                            <div class="metric-value">${machine.efficiency}%</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Velocidade</div>
+                            <div class="metric-value">${machine.speed.toFixed(1)} km/h</div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Atualizar relógio
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('current-time').textContent = `${hours}:${minutes}`;
+        }
+
+        // Simular dados em tempo real para o painel do operador
+        function simulateOperatorData() {
+            // ===== NÍVEL 1: DADOS 30s - GNSS & MOTOR =====
+            
+            // Latitude (variação mínima simulando movimento)
+            const lat = -23.5505 + (Math.random() - 0.5) * 0.0001;
+            document.getElementById('gnss-lat').textContent = lat.toFixed(4);
+            
+            // Longitude (variação mínima simulando movimento)
+            const lon = -46.6333 + (Math.random() - 0.5) * 0.0001;
+            document.getElementById('gnss-lon').textContent = lon.toFixed(4);
+            
+            // Velocidade GNSS
+            const gnssSpeed = 4.8 + Math.random() * 0.8;
+            document.getElementById('gnss-speed').textContent = gnssSpeed.toFixed(1);
+            
+            // RPM Motor
+            const rpm = 2000 + Math.random() * 300;
+            document.getElementById('motor-rpm').textContent = Math.round(rpm);
+            
+            // Torque Motor
+            const torque = 65 + Math.random() * 15;
+            document.getElementById('motor-torque').textContent = Math.round(torque);
+            
+            // Fluxo do Elevador
+            const elevatorStates = ['ATIVO', 'NORMAL', 'ALTO FLUXO'];
+            const randomState = elevatorStates[Math.floor(Math.random() * elevatorStates.length)];
+            document.getElementById('elevator-flow-display').textContent = randomState;
+            
+            // ===== NÍVEL 2: DADOS 1min - OPERAÇÃO =====
+            
+            // Velocidade Cortador Base
+            const baseCutter = 800 + Math.random() * 100;
+            document.getElementById('base-cutter-value').textContent = Math.round(baseCutter);
+            const baseCutterRotation = (baseCutter / 1000) * 360;
+            document.getElementById('gauge-base-cutter').style.setProperty('--gauge-rotation', baseCutterRotation + 'deg');
+            
+            // Altura de Corte
+            const cutHeight = 3.5 + Math.random() * 1.5;
+            document.getElementById('cut-height-value').textContent = cutHeight.toFixed(1);
+            const cutHeightRotation = (cutHeight / 10) * 360;
+            document.getElementById('gauge-cut-height').style.setProperty('--gauge-rotation', cutHeightRotation + 'deg');
+            
+            // Rolos Alimentadores
+            const feedRoller = 580 + Math.random() * 80;
+            document.getElementById('feed-roller-value').textContent = Math.round(feedRoller);
+            const feedRollerRotation = (feedRoller / 800) * 360;
+            document.getElementById('gauge-feed-roller').style.setProperty('--gauge-rotation', feedRollerRotation + 'deg');
+            
+            // Rolos Divisores
+            const dividerRoller = 450 + Math.random() * 60;
+            document.getElementById('divider-roller-value').textContent = Math.round(dividerRoller);
+            const dividerRollerRotation = (dividerRoller / 700) * 360;
+            document.getElementById('gauge-divider-roller').style.setProperty('--gauge-rotation', dividerRollerRotation + 'deg');
+            
+            // Carga do Picador
+            const chopperLoad = 60 + Math.random() * 15;
+            document.getElementById('chopper-load-value').textContent = Math.round(chopperLoad);
+            const chopperRotation = (chopperLoad / 100) * 360;
+            document.getElementById('gauge-chopper').style.setProperty('--gauge-rotation', chopperRotation + 'deg');
+            
+            // Temperatura Transmissão
+            const transmissionTemp = 75 + Math.random() * 8;
+            document.getElementById('transmission-temp-value').textContent = Math.round(transmissionTemp);
+            const transmissionRotation = (transmissionTemp / 120) * 360;
+            document.getElementById('gauge-transmission').style.setProperty('--gauge-rotation', transmissionRotation + 'deg');
+            
+            // Distância Percorrida (incrementa lentamente)
+            const distanceTravelled = parseFloat(document.getElementById('distance-travelled').textContent);
+            document.getElementById('distance-travelled').textContent = (distanceTravelled + Math.random() * 0.05).toFixed(1);
+            
+            // Produtividade Estimada
+            const productivity = 80 + Math.random() * 10;
+            document.getElementById('productivity-est').textContent = productivity.toFixed(1);
+            
+            // ===== NÍVEL 3: DADOS 5min - MOTOR & SISTEMAS =====
+            
+            // Temperatura Motor
+            const engineTemp = 85 + Math.random() * 8;
+            document.getElementById('engine-temp-value').textContent = Math.round(engineTemp);
+            const engineTempRotation = (engineTemp / 120) * 360;
+            document.getElementById('gauge-engine-temp').style.setProperty('--gauge-rotation', engineTempRotation + 'deg');
+            
+            // Pressão Hidráulica
+            const hydraulicPressure = 180 + Math.random() * 15;
+            document.getElementById('hydraulic-pressure-value').textContent = Math.round(hydraulicPressure);
+            const hydraulicRotation = (hydraulicPressure / 250) * 360;
+            document.getElementById('gauge-hydraulic').style.setProperty('--gauge-rotation', hydraulicRotation + 'deg');
+            
+            // Nível Combustível (decrementa lentamente)
+            const fuelLevel = parseFloat(document.getElementById('fuel-level-value').textContent);
+            const newFuelLevel = Math.max(0, fuelLevel - Math.random() * 0.1);
+            document.getElementById('fuel-level-value').textContent = Math.round(newFuelLevel);
+            const fuelRotation = (newFuelLevel / 100) * 360;
+            document.getElementById('gauge-fuel').style.setProperty('--gauge-rotation', fuelRotation + 'deg');
+            
+            // Consumo Instantâneo
+            const instantConsumption = 38 + Math.random() * 8;
+            document.getElementById('instant-consumption-value').textContent = Math.round(instantConsumption);
+            const consumptionRotation = (instantConsumption / 60) * 360;
+            document.getElementById('gauge-consumption').style.setProperty('--gauge-rotation', consumptionRotation + 'deg');
+            
+            // Pressão Óleo Motor
+            const oilPressure = 4.5 + Math.random() * 0.6;
+            document.getElementById('oil-pressure-value').textContent = oilPressure.toFixed(1);
+            const oilPressureRotation = (oilPressure / 6) * 360;
+            document.getElementById('gauge-oil-pressure').style.setProperty('--gauge-rotation', oilPressureRotation + 'deg');
+            
+            // Temperatura Gases de Escape
+            const exhaustTemp = 400 + Math.random() * 50;
+            document.getElementById('exhaust-temp-value').textContent = Math.round(exhaustTemp);
+            const exhaustRotation = (exhaustTemp / 600) * 360;
+            document.getElementById('gauge-exhaust').style.setProperty('--gauge-rotation', exhaustRotation + 'deg');
+            
+            // Nível Lubrificante
+            const lubricantLevel = 75 + Math.random() * 5;
+            document.getElementById('lubricant-level').textContent = Math.round(lubricantLevel);
+            
+            // Consumo Lubrificante (incrementa lentamente)
+            const lubricantConsumption = parseFloat(document.getElementById('lubricant-consumption').textContent);
+            document.getElementById('lubricant-consumption').textContent = (lubricantConsumption + Math.random() * 0.01).toFixed(2);
+        }
+
+        // Atualizar Ordem de Serviço dinamicamente
+        function updateWorkOrder() {
+            // Simular progresso
+            const progressEl = document.getElementById('os-progress');
+            const progressTextEl = document.getElementById('os-progress-text');
+            const harvestedEl = document.getElementById('os-harvested');
+            
+            let currentProgress = parseFloat(progressEl.style.width) || 40;
+            let currentHarvested = parseFloat(harvestedEl.textContent) || 18.3;
+            
+            // Incrementar ligeiramente
+            currentProgress += Math.random() * 0.2;
+            currentHarvested += Math.random() * 0.1;
+            
+            if (currentProgress > 100) currentProgress = 100;
+            if (currentHarvested > 45.8) currentHarvested = 45.8;
+            
+            progressEl.style.width = currentProgress.toFixed(1) + '%';
+            progressTextEl.textContent = currentProgress.toFixed(0) + '%';
+            harvestedEl.innerHTML = currentHarvested.toFixed(1) + ' <span style="font-size: 0.7em; color: #a0a0a0;">ha</span>';
+            
+            // Atualizar tempo decorrido
+            const startTime = new Date();
+            startTime.setHours(6, 30, 0);
+            const now = new Date();
+            const elapsed = now - startTime;
+            const hours = Math.floor(elapsed / (1000 * 60 * 60));
+            const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
+            document.getElementById('os-elapsed').textContent = `${hours}h ${minutes}min`;
+        }
+
+        // Renderizar mapa com talhões e veículos
+        function renderMap() {
+            const mapCanvas = document.getElementById('map-canvas');
+            
+            // Definir talhões
+            const fields = [
+                { id: 'T-01', x: 5, y: 5, width: 25, height: 35, color: 'rgba(59, 130, 246, 0.15)' },
+                { id: 'T-02', x: 32, y: 5, width: 28, height: 35, color: 'rgba(59, 130, 246, 0.15)' },
+                { id: 'T-03', x: 62, y: 5, width: 33, height: 35, color: 'rgba(59, 130, 246, 0.15)' },
+                { id: 'T-04', x: 5, y: 45, width: 30, height: 30, color: 'rgba(59, 130, 246, 0.15)' },
+                { id: 'T-05', x: 37, y: 45, width: 28, height: 30, color: 'rgba(59, 130, 246, 0.15)' },
+                { id: 'T-06', x: 67, y: 45, width: 28, height: 30, color: 'rgba(59, 130, 246, 0.15)' }
+            ];
+
+            // Renderizar talhões
+            fields.forEach(field => {
+                const fieldDiv = document.createElement('div');
+                fieldDiv.className = 'field-plot';
+                fieldDiv.style.left = field.x + '%';
+                fieldDiv.style.top = field.y + '%';
+                fieldDiv.style.width = field.width + '%';
+                fieldDiv.style.height = field.height + '%';
+                fieldDiv.style.background = field.color;
+                fieldDiv.textContent = field.id;
+                mapCanvas.appendChild(fieldDiv);
+            });
+
+            // Posições dos veículos nos talhões
+            const vehiclePositions = [
+                { id: 'COL-01', field: 'T-03', x: 70, y: 20, status: 'active' },
+                { id: 'COL-02', field: 'T-01', x: 15, y: 25, status: 'active' },
+                { id: 'COL-03', field: 'T-02', x: 45, y: 18, status: 'active' },
+                { id: 'COL-04', field: 'T-05', x: 50, y: 58, status: 'idle' },
+                { id: 'COL-05', field: 'T-06', x: 80, y: 55, status: 'active' },
+                { id: 'COL-06', field: 'T-04', x: 18, y: 60, status: 'active' },
+                { id: 'COL-07', field: 'T-03', x: 85, y: 30, status: 'active' },
+                { id: 'COL-08', field: 'T-02', x: 52, y: 28, status: 'active' }
+            ];
+
+            // Renderizar veículos
+            vehiclePositions.forEach(vehicle => {
+                const vehicleDiv = document.createElement('div');
+                vehicleDiv.className = `vehicle-marker ${vehicle.status}`;
+                vehicleDiv.style.left = vehicle.x + '%';
+                vehicleDiv.style.top = vehicle.y + '%';
+                vehicleDiv.textContent = '🚜';
+                vehicleDiv.title = `${vehicle.id} - ${vehicle.field}`;
+                
+                // Adicionar tooltip ao hover
+                vehicleDiv.addEventListener('mouseenter', (e) => {
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'vehicle-tooltip';
+                    tooltip.style.left = (vehicle.x + 3) + '%';
+                    tooltip.style.top = (vehicle.y - 5) + '%';
+                    tooltip.style.display = 'block';
+                    tooltip.innerHTML = `<strong>${vehicle.id}</strong><br>${vehicle.field} • ${vehicle.status === 'active' ? 'Operando' : 'Parado'}`;
+                    tooltip.id = 'tooltip-' + vehicle.id;
+                    mapCanvas.appendChild(tooltip);
+                });
+
+                vehicleDiv.addEventListener('mouseleave', () => {
+                    const tooltip = document.getElementById('tooltip-' + vehicle.id);
+                    if (tooltip) tooltip.remove();
+                });
+
+                mapCanvas.appendChild(vehicleDiv);
+            });
+        }
+
+        // Renderizar gráfico semanal
+        function renderWeeklyChart() {
+            const chartContainer = document.getElementById('weekly-chart');
+            const weeklyData = [
+                { day: 'Seg', value: 65000 },
+                { day: 'Ter', value: 72000 },
+                { day: 'Qua', value: 68000 },
+                { day: 'Qui', value: 78000 },
+                { day: 'Sex', value: 82000 },
+                { day: 'Sáb', value: 59000 },
+                { day: 'Dom', value: 43000 }
+            ];
+
+            const maxValue = Math.max(...weeklyData.map(d => d.value));
+
+            weeklyData.forEach(data => {
+                const barHeight = (data.value / maxValue) * 100;
+                const bar = document.createElement('div');
+                bar.className = 'chart-bar';
+                bar.style.height = barHeight + '%';
+                
+                const label = document.createElement('div');
+                label.className = 'chart-bar-value';
+                label.textContent = 'R$ ' + (data.value / 1000).toFixed(0) + 'k';
+                bar.appendChild(label);
+
+                chartContainer.appendChild(bar);
+            });
+        }
+
+        // Atualizar valores financeiros periodicamente
+        function updateFinancials() {
+            const revenueEl = document.getElementById('weekly-revenue');
+            const expensesEl = document.getElementById('weekly-expenses');
+            const profitEl = document.getElementById('weekly-profit');
+            const marginEl = document.getElementById('profit-margin');
+
+            const revenue = parseFloat(revenueEl.textContent.replace(/\./g, '')) + Math.random() * 500;
+            const expenses = parseFloat(expensesEl.textContent.replace(/\./g, '')) + Math.random() * 300;
+            const profit = revenue - expenses;
+            const margin = (profit / revenue) * 100;
+
+            revenueEl.textContent = revenue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            expensesEl.textContent = expenses.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            profitEl.textContent = profit.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            marginEl.textContent = margin.toFixed(1);
+        }
+
+        // ============ DADOS E FUNÇÕES DO PAINEL DE MANUTENÇÃO ============
+        
+        // Alertas de manutenção
+        const maintenanceAlerts = [
+            { id: 1, machine: 'COL-04', type: 'critical', icon: '🚨', description: 'Pressão hidráulica abaixo do normal - Requer atenção imediata', action: 'Verificar' },
+            { id: 2, machine: 'COL-02', type: 'warning', icon: '⚠️', description: 'Troca de óleo vencida há 3 dias - Agendar manutenção preventiva', action: 'Agendar' },
+            { id: 3, machine: 'COL-07', type: 'warning', icon: '⚠️', description: 'Filtro de ar com 85% de saturação - Trocar em breve', action: 'Programar' },
+            { id: 4, machine: 'COL-01', type: 'info', icon: '💡', description: 'Manutenção preventiva agendada para amanhã às 08:00', action: 'Detalhes' }
+        ];
+
+        // Estado de saúde das máquinas
+        const machineHealth = [
+            { machine: 'COL-01', status: 'excellent', horasUso: 245, proximaManutencao: 55, eficiencia: 94 },
+            { machine: 'COL-02', status: 'warning', horasUso: 312, proximaManutencao: 12, eficiencia: 89 },
+            { machine: 'COL-03', status: 'good', horasUso: 198, proximaManutencao: 102, eficiencia: 91 },
+            { machine: 'COL-04', status: 'critical', horasUso: 387, proximaManutencao: -8, eficiencia: 78 },
+            { machine: 'COL-05', status: 'excellent', horasUso: 156, proximaManutencao: 144, eficiencia: 96 },
+            { machine: 'COL-06', status: 'good', horasUso: 223, proximaManutencao: 77, eficiencia: 88 },
+            { machine: 'COL-07', status: 'warning', horasUso: 289, proximaManutencao: 35, eficiencia: 92 },
+            { machine: 'COL-08', status: 'good', horasUso: 201, proximaManutencao: 99, eficiencia: 85 }
+        ];
+
+        // Histórico de manutenções
+        const maintenanceHistory = [
+            { machine: 'COL-05', date: 'Hoje, 09:30', description: 'Troca de filtros de combustível e ar - Concluída' },
+            { machine: 'COL-01', date: 'Ontem, 14:20', description: 'Inspeção geral 300h - Aprovada sem pendências' },
+            { machine: 'COL-03', date: '2 dias atrás', description: 'Ajuste de tensão de correia - Concluída' },
+            { machine: 'COL-08', date: '3 dias atrás', description: 'Troca de óleo hidráulico - Concluída' },
+            { machine: 'COL-06', date: '4 dias atrás', description: 'Substituição de lâmpadas do painel - Concluída' }
+        ];
+
+        // Estoque de peças críticas
+        const partsInventory = [
+            { name: 'Filtro de Óleo', current: 18, min: 10, status: 'ok' },
+            { name: 'Filtro de Ar', current: 8, min: 8, status: 'low' },
+            { name: 'Filtro Combustível', current: 4, min: 6, status: 'critical' },
+            { name: 'Correias V', current: 12, min: 8, status: 'ok' },
+            { name: 'Lâminas Base', current: 15, min: 12, status: 'ok' },
+            { name: 'Óleo Hidráulico (L)', current: 180, min: 150, status: 'ok' }
+        ];
+
+        // Cronograma de manutenção
+        const maintenanceSchedule = [
+            { day: '15', month: 'JAN', machine: 'COL-01', task: 'Manutenção Preventiva 300h', priority: 'high' },
+            { day: '16', month: 'JAN', machine: 'COL-04', task: 'Reparo Sistema Hidráulico', priority: 'high' },
+            { day: '17', month: 'JAN', machine: 'COL-02', task: 'Troca de Óleo Motor', priority: 'medium' },
+            { day: '18', month: 'JAN', machine: 'COL-07', task: 'Substituição Filtro de Ar', priority: 'medium' },
+            { day: '19', month: 'JAN', machine: 'COL-06', task: 'Inspeção Geral', priority: 'low' },
+            { day: '20', month: 'JAN', machine: 'COL-03', task: 'Lubrificação Completa', priority: 'low' }
+        ];
+
+        // Renderizar alertas de manutenção
+        function renderMaintenanceAlerts() {
+            const container = document.getElementById('maintenance-alerts-container');
+            container.innerHTML = '';
+
+            maintenanceAlerts.forEach(alert => {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `maintenance-alert-card ${alert.type}`;
+                alertDiv.innerHTML = `
+                    <div class="alert-content">
+                        <div class="alert-main">
+                            <span class="alert-icon">${alert.icon}</span>
+                            <span class="alert-machine">${alert.machine}</span>
+                        </div>
+                        <div class="alert-description">${alert.description}</div>
+                    </div>
+                    <button class="alert-action">${alert.action}</button>
+                `;
+                container.appendChild(alertDiv);
+            });
+        }
+
+        // Renderizar estado das máquinas
+        function renderMachineHealth() {
+            const container = document.getElementById('machine-health-container');
+            container.innerHTML = '';
+
+            machineHealth.slice(0, 6).forEach(health => {
+                const statusLabels = {
+                    excellent: '✓ Excelente',
+                    good: '✓ Bom',
+                    warning: '⚠ Atenção',
+                    critical: '🚨 Crítico'
+                };
+
+                const healthDiv = document.createElement('div');
+                healthDiv.className = 'machine-health-card';
+                healthDiv.innerHTML = `
+                    <div class="health-header">
+                        <div class="health-machine-name">${health.machine}</div>
+                        <div class="health-status ${health.status}">${statusLabels[health.status]}</div>
+                    </div>
+                    <div class="health-metrics">
+                        <div class="health-metric-row">
+                            <span class="health-metric-label">Horas de Uso</span>
+                            <span class="health-metric-value">${health.horasUso}h</span>
+                        </div>
+                        <div class="health-metric-row">
+                            <span class="health-metric-label">Próxima Manutenção</span>
+                            <span class="health-metric-value">${health.proximaManutencao > 0 ? health.proximaManutencao + 'h' : 'Vencida!'}</span>
+                        </div>
+                        <div class="health-metric-row">
+                            <span class="health-metric-label">Eficiência Atual</span>
+                            <span class="health-metric-value">${health.eficiencia}%</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(healthDiv);
+            });
+        }
+
+        // Renderizar histórico
+        function renderMaintenanceHistory() {
+            const container = document.getElementById('maintenance-history-container');
+            container.innerHTML = '';
+
+            maintenanceHistory.forEach(item => {
+                const historyDiv = document.createElement('div');
+                historyDiv.className = 'history-item';
+                historyDiv.innerHTML = `
+                    <div class="history-header">
+                        <div class="history-machine">${item.machine}</div>
+                        <div class="history-date">${item.date}</div>
+                    </div>
+                    <div class="history-description">${item.description}</div>
+                `;
+                container.appendChild(historyDiv);
+            });
+        }
+
+        // Renderizar análise de desempenho
+        function renderPerformanceAnalysis() {
+            const container = document.getElementById('performance-analysis-container');
+            container.innerHTML = '';
+
+            const selectedMachines = [
+                { machine: 'COL-01', score: 94, uptime: 96, efficiency: 94, maintenance: 92 },
+                { machine: 'COL-05', score: 96, uptime: 98, efficiency: 96, maintenance: 95 },
+                { machine: 'COL-03', score: 91, uptime: 93, efficiency: 91, maintenance: 89 },
+                { machine: 'COL-04', score: 78, uptime: 72, efficiency: 78, maintenance: 65 }
+            ];
+
+            selectedMachines.forEach(perf => {
+                const perfDiv = document.createElement('div');
+                perfDiv.className = 'performance-card';
+                perfDiv.innerHTML = `
+                    <div class="performance-header">
+                        <div class="performance-machine">${perf.machine}</div>
+                        <div class="performance-score">${perf.score}%</div>
+                        <div style="font-size: 0.85em; color: #a0a0a0;">Performance Geral</div>
+                    </div>
+                    <div class="performance-bars">
+                        <div class="performance-bar-item">
+                            <div class="performance-bar-header">
+                                <span class="performance-bar-label">Tempo Ativo</span>
+                                <span class="performance-bar-value">${perf.uptime}%</span>
+                            </div>
+                            <div class="performance-bar-track">
+                                <div class="performance-bar-fill" style="width: ${perf.uptime}%; background: #3b82f6;"></div>
+                            </div>
+                        </div>
+                        <div class="performance-bar-item">
+                            <div class="performance-bar-header">
+                                <span class="performance-bar-label">Eficiência</span>
+                                <span class="performance-bar-value">${perf.efficiency}%</span>
+                            </div>
+                            <div class="performance-bar-track">
+                                <div class="performance-bar-fill" style="width: ${perf.efficiency}%; background: #60a5fa;"></div>
+                            </div>
+                        </div>
+                        <div class="performance-bar-item">
+                            <div class="performance-bar-header">
+                                <span class="performance-bar-label">Manutenção</span>
+                                <span class="performance-bar-value">${perf.maintenance}%</span>
+                            </div>
+                            <div class="performance-bar-track">
+                                <div class="performance-bar-fill" style="width: ${perf.maintenance}%; background: #93c5fd;"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(perfDiv);
+            });
+        }
+
+        // Renderizar estoque de peças
+        function renderPartsInventory() {
+            const container = document.getElementById('parts-inventory-container');
+            container.innerHTML = '';
+
+            partsInventory.forEach(part => {
+                const statusLabels = {
+                    ok: '✓ Estoque OK',
+                    low: '⚠ Estoque Baixo',
+                    critical: '🚨 Crítico'
+                };
+
+                const partDiv = document.createElement('div');
+                partDiv.className = 'parts-card';
+                partDiv.innerHTML = `
+                    <div class="parts-header">
+                        <div class="parts-name">${part.name}</div>
+                        <div class="parts-quantity">
+                            <div class="parts-current">${part.current}</div>
+                            <div class="parts-min">Mín: ${part.min}</div>
+                        </div>
+                    </div>
+                    <div class="parts-status ${part.status}">${statusLabels[part.status]}</div>
+                `;
+                container.appendChild(partDiv);
+            });
+        }
+
+        // Renderizar cronograma
+        function renderMaintenanceSchedule() {
+            const container = document.getElementById('maintenance-schedule-container');
+            container.innerHTML = '';
+
+            maintenanceSchedule.forEach(schedule => {
+                const scheduleDiv = document.createElement('div');
+                scheduleDiv.className = 'schedule-item';
+                scheduleDiv.innerHTML = `
+                    <div class="schedule-date-box">
+                        <div class="schedule-day">${schedule.day}</div>
+                        <div class="schedule-month">${schedule.month}</div>
+                    </div>
+                    <div class="schedule-details">
+                        <div class="schedule-machine">${schedule.machine}</div>
+                        <div class="schedule-task">${schedule.task}</div>
+                    </div>
+                    <div class="schedule-priority ${schedule.priority}">
+                        ${schedule.priority === 'high' ? 'Alta' : schedule.priority === 'medium' ? 'Média' : 'Baixa'}
+                    </div>
+                `;
+                container.appendChild(scheduleDiv);
+            });
+        }
+
+        // Inicializar
+        renderMachines();
+        renderMap();
+        renderWeeklyChart();
+        updateClock();
+        simulateOperatorData();
+        updateWorkOrder();
+        
+        // Inicializar painel de manutenção
+        renderMaintenanceAlerts();
+        renderMachineHealth();
+        renderMaintenanceHistory();
+        renderPerformanceAnalysis();
+        renderPartsInventory();
+        renderMaintenanceSchedule();
+
+        // Atualização periódica
+        setInterval(updateClock, 1000);
+        setInterval(simulateOperatorData, 2000);
+        setInterval(updateFinancials, 8000);
+        setInterval(updateWorkOrder, 3000);
+
+        // Atualizar dados admin periodicamente
+        setInterval(() => {
+            machines.forEach(m => {
+                if (m.status === 'active') {
+                    m.production += Math.random() * 0.5;
+                    m.area += Math.random() * 0.1;
+                }
+            });
+            renderMachines();
+
+            const totalProd = document.getElementById('total-production');
+            const currentValue = parseFloat(totalProd.textContent);
+            totalProd.textContent = (currentValue + Math.random() * 2).toFixed(1);
+        }, 5000);
+    </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9ab6b300821da42d',t:'MTc2NTMwNjM0Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
